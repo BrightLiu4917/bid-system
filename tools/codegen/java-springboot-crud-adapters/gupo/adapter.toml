@@ -1,0 +1,22 @@
+id = "gupo"
+name = "gupo Java Spring Boot CRUD Adapter"
+status = "available"
+description = "仅适用于 gupo 项目的 Spring Boot + MyBatis CRUD 脚手架。"
+
+required_confirmation = true
+
+strong_signals = [
+  "pom.xml groupId/artifactId 或 base package 命中 gupo/groupds 约定",
+  "存在 gupo 响应封装、分页封装、异常体系或基础 Controller/Service",
+  "目录结构包含 entity/req、entity/vo、entity/model 等 gupo 约定",
+  "既有 Mapper/XML、DTO/VO、接口路径符合 gupo 项目约定"
+]
+
+insufficient_signals = [
+  "仅使用 Spring Boot",
+  "仅使用 MyBatis 或 MyBatis-Plus",
+  "仅存在 Controller/Service/Mapper/XML 分层"
+]
+
+boot2_script = "scripts/crud-spring-bootv2"
+boot34_script = "scripts/crud-spring-bootv34"

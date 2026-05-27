@@ -1,0 +1,1 @@
+"use strict";(self.rspackChunkvue3_admin_better=self.rspackChunkvue3_admin_better||[]).push([[7734],{52789:function(e,t,s){e.exports=s.p+"static/background..jpg"}}]);

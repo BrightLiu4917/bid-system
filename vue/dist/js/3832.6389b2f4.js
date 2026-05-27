@@ -1,0 +1,1 @@
+"use strict";(self.rspackChunkvue3_admin_better=self.rspackChunkvue3_admin_better||[]).push([[3832],{70523:function(e,t,s){e.exports=s.p+"static/banner-2..jpg"}}]);

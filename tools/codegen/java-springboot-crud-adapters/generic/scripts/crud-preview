@@ -1,0 +1,299 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+PROJECT_ROOT=""
+BASE_PACKAGE=""
+MODULE_PATH="."
+ENTITY_NAME=""
+TABLE_NAME=""
+ROUTE_PATH=""
+DISPLAY_NAME=""
+FIELDS=""
+OUTPUT_DIR=""
+WRITE=0
+
+usage() {
+  cat <<'USAGE'
+Usage:
+  bash tools/codegen/java-springboot-crud-adapters/generic/scripts/crud-preview \
+    --project-root /path/to/project \
+    --base-package com.example.demo \
+    --entity-name Supplier \
+    --table-name supplier \
+    --route-path /api/suppliers \
+    --display-name 供应商 \
+    --fields 'id:Long:主键,name:String:名称,status:String:状态' \
+    [--module-path api] \
+    [--output-dir .codex/codegen-preview] \
+    [--write]
+
+Default mode prints a preview only. --write writes review drafts under
+<project-root>/<output-dir>/<entity-name>/ and never writes directly to src/main.
+USAGE
+}
+
+fail() {
+  printf '[FAIL] %s\n' "$*" >&2
+  exit 2
+}
+
+while [[ "$#" -gt 0 ]]; do
+  case "$1" in
+    --project-root) PROJECT_ROOT="${2:-}"; shift 2 ;;
+    --base-package) BASE_PACKAGE="${2:-}"; shift 2 ;;
+    --module-path) MODULE_PATH="${2:-}"; shift 2 ;;
+    --entity-name) ENTITY_NAME="${2:-}"; shift 2 ;;
+    --table-name) TABLE_NAME="${2:-}"; shift 2 ;;
+    --route-path) ROUTE_PATH="${2:-}"; shift 2 ;;
+    --display-name) DISPLAY_NAME="${2:-}"; shift 2 ;;
+    --fields) FIELDS="${2:-}"; shift 2 ;;
+    --output-dir) OUTPUT_DIR="${2:-}"; shift 2 ;;
+    --write) WRITE=1; shift ;;
+    -h|--help) usage; exit 0 ;;
+    *) fail "Unknown option: $1" ;;
+  esac
+done
+
+[[ -n "$PROJECT_ROOT" ]] || fail "--project-root is required"
+[[ -d "$PROJECT_ROOT" ]] || fail "Project root does not exist: $PROJECT_ROOT"
+[[ -n "$BASE_PACKAGE" ]] || fail "--base-package is required"
+[[ -n "$ENTITY_NAME" ]] || fail "--entity-name is required"
+[[ -n "$TABLE_NAME" ]] || fail "--table-name is required"
+[[ -n "$ROUTE_PATH" ]] || fail "--route-path is required"
+[[ -n "$DISPLAY_NAME" ]] || fail "--display-name is required"
+[[ -n "$FIELDS" ]] || fail "--fields is required"
+
+case "$ENTITY_NAME" in
+  *[!A-Za-z0-9_]*|'') fail "--entity-name must be a Java identifier-like name" ;;
+esac
+
+if [[ "$ROUTE_PATH" != /* ]]; then
+  fail "--route-path must start with /"
+fi
+
+OUTPUT_DIR="${OUTPUT_DIR:-.codex/codegen-preview}"
+PACKAGE_PATH="$(printf '%s' "$BASE_PACKAGE" | tr '.' '/')"
+LOWER_ENTITY="$(printf '%s' "$ENTITY_NAME" | awk '{ print tolower(substr($0,1,1)) substr($0,2) }')"
+TARGET_ROOT="$PROJECT_ROOT/$OUTPUT_DIR/$ENTITY_NAME"
+
+JAVA_BASE="$MODULE_PATH/src/main/java/$PACKAGE_PATH"
+XML_BASE="$MODULE_PATH/src/main/resources/mapper"
+
+planned_files=(
+  "$TARGET_ROOT/$JAVA_BASE/domain/$ENTITY_NAME.java"
+  "$TARGET_ROOT/$JAVA_BASE/dto/${ENTITY_NAME}CreateRequest.java"
+  "$TARGET_ROOT/$JAVA_BASE/dto/${ENTITY_NAME}UpdateRequest.java"
+  "$TARGET_ROOT/$JAVA_BASE/vo/${ENTITY_NAME}VO.java"
+  "$TARGET_ROOT/$JAVA_BASE/mapper/${ENTITY_NAME}Mapper.java"
+  "$TARGET_ROOT/$XML_BASE/${ENTITY_NAME}Mapper.xml"
+  "$TARGET_ROOT/$JAVA_BASE/service/${ENTITY_NAME}Service.java"
+  "$TARGET_ROOT/$JAVA_BASE/service/impl/${ENTITY_NAME}ServiceImpl.java"
+  "$TARGET_ROOT/$JAVA_BASE/controller/${ENTITY_NAME}Controller.java"
+  "$TARGET_ROOT/REVIEW.md"
+)
+
+printf 'Generic CRUD preview adapter\n'
+printf 'Project root: %s\n' "$PROJECT_ROOT"
+printf 'Mode: %s\n' "$([[ "$WRITE" -eq 1 ]] && printf write || printf preview)"
+printf 'Output root: %s\n' "$TARGET_ROOT"
+printf 'Business source write: disabled\n'
+printf '\nPlanned draft files:\n'
+printf '  - %s\n' "${planned_files[@]}"
+
+if [[ "$WRITE" -ne 1 ]]; then
+  printf '\nNo files written. Re-run with --write to create review drafts under the output root.\n'
+  exit 0
+fi
+
+mkdir -p \
+  "$TARGET_ROOT/$JAVA_BASE/domain" \
+  "$TARGET_ROOT/$JAVA_BASE/dto" \
+  "$TARGET_ROOT/$JAVA_BASE/vo" \
+  "$TARGET_ROOT/$JAVA_BASE/mapper" \
+  "$TARGET_ROOT/$JAVA_BASE/service/impl" \
+  "$TARGET_ROOT/$JAVA_BASE/controller" \
+  "$TARGET_ROOT/$XML_BASE"
+
+field_lines=""
+dto_lines=""
+xml_columns=""
+xml_values=""
+while IFS= read -r field; do
+  [[ -n "$field" ]] || continue
+  IFS=':' read -r name type comment <<<"$field"
+  [[ -n "${name:-}" && -n "${type:-}" ]] || fail "Invalid field item: $field"
+  field_lines+="    /** ${comment:-$name} */"$'\n'
+  field_lines+="    private $type $name;"$'\n\n'
+  if [[ "$name" != "id" ]]; then
+    dto_lines+="    /** ${comment:-$name} */"$'\n'
+    dto_lines+="    private $type $name;"$'\n\n'
+  fi
+  xml_columns+="        $name,"$'\n'
+  xml_values+="        #{$name},"$'\n'
+done < <(printf '%s' "$FIELDS" | tr ',' '\n')
+
+cat > "$TARGET_ROOT/$JAVA_BASE/domain/$ENTITY_NAME.java" <<EOF
+package $BASE_PACKAGE.domain;
+
+/**
+ * ${DISPLAY_NAME}.
+ * Draft generated for review. Confirm fields, annotations and persistence rules before use.
+ */
+public class $ENTITY_NAME {
+$field_lines}
+EOF
+
+cat > "$TARGET_ROOT/$JAVA_BASE/dto/${ENTITY_NAME}CreateRequest.java" <<EOF
+package $BASE_PACKAGE.dto;
+
+/**
+ * Create request for ${DISPLAY_NAME}.
+ */
+public class ${ENTITY_NAME}CreateRequest {
+$dto_lines}
+EOF
+
+cat > "$TARGET_ROOT/$JAVA_BASE/dto/${ENTITY_NAME}UpdateRequest.java" <<EOF
+package $BASE_PACKAGE.dto;
+
+/**
+ * Update request for ${DISPLAY_NAME}.
+ */
+public class ${ENTITY_NAME}UpdateRequest {
+    /** 主键 */
+    private Long id;
+
+$dto_lines}
+EOF
+
+cat > "$TARGET_ROOT/$JAVA_BASE/vo/${ENTITY_NAME}VO.java" <<EOF
+package $BASE_PACKAGE.vo;
+
+/**
+ * View object for ${DISPLAY_NAME}.
+ */
+public class ${ENTITY_NAME}VO {
+$field_lines}
+EOF
+
+cat > "$TARGET_ROOT/$JAVA_BASE/mapper/${ENTITY_NAME}Mapper.java" <<EOF
+package $BASE_PACKAGE.mapper;
+
+import $BASE_PACKAGE.domain.$ENTITY_NAME;
+import java.util.List;
+
+public interface ${ENTITY_NAME}Mapper {
+    int insert($ENTITY_NAME entity);
+
+    int updateById($ENTITY_NAME entity);
+
+    $ENTITY_NAME selectById(Long id);
+
+    List<$ENTITY_NAME> selectPage();
+}
+EOF
+
+cat > "$TARGET_ROOT/$XML_BASE/${ENTITY_NAME}Mapper.xml" <<EOF
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="$BASE_PACKAGE.mapper.${ENTITY_NAME}Mapper">
+  <!-- Draft only. Confirm columns, dynamic SQL, tenant scope, soft delete and ordering before use. -->
+  <insert id="insert" parameterType="$BASE_PACKAGE.domain.$ENTITY_NAME">
+    INSERT INTO $TABLE_NAME (
+$(printf '%s' "$xml_columns" | sed '$ s/,$//')
+    ) VALUES (
+$(printf '%s' "$xml_values" | sed '$ s/,$//')
+    )
+  </insert>
+</mapper>
+EOF
+
+cat > "$TARGET_ROOT/$JAVA_BASE/service/${ENTITY_NAME}Service.java" <<EOF
+package $BASE_PACKAGE.service;
+
+import $BASE_PACKAGE.dto.${ENTITY_NAME}CreateRequest;
+import $BASE_PACKAGE.dto.${ENTITY_NAME}UpdateRequest;
+import $BASE_PACKAGE.vo.${ENTITY_NAME}VO;
+
+public interface ${ENTITY_NAME}Service {
+    ${ENTITY_NAME}VO create(${ENTITY_NAME}CreateRequest request);
+
+    ${ENTITY_NAME}VO update(${ENTITY_NAME}UpdateRequest request);
+
+    ${ENTITY_NAME}VO detail(Long id);
+}
+EOF
+
+cat > "$TARGET_ROOT/$JAVA_BASE/service/impl/${ENTITY_NAME}ServiceImpl.java" <<EOF
+package $BASE_PACKAGE.service.impl;
+
+import $BASE_PACKAGE.dto.${ENTITY_NAME}CreateRequest;
+import $BASE_PACKAGE.dto.${ENTITY_NAME}UpdateRequest;
+import $BASE_PACKAGE.service.${ENTITY_NAME}Service;
+import $BASE_PACKAGE.vo.${ENTITY_NAME}VO;
+
+public class ${ENTITY_NAME}ServiceImpl implements ${ENTITY_NAME}Service {
+    @Override
+    public ${ENTITY_NAME}VO create(${ENTITY_NAME}CreateRequest request) {
+        throw new UnsupportedOperationException("Draft only. Implement after business rules are confirmed.");
+    }
+
+    @Override
+    public ${ENTITY_NAME}VO update(${ENTITY_NAME}UpdateRequest request) {
+        throw new UnsupportedOperationException("Draft only. Implement after business rules are confirmed.");
+    }
+
+    @Override
+    public ${ENTITY_NAME}VO detail(Long id) {
+        throw new UnsupportedOperationException("Draft only. Implement after business rules are confirmed.");
+    }
+}
+EOF
+
+cat > "$TARGET_ROOT/$JAVA_BASE/controller/${ENTITY_NAME}Controller.java" <<EOF
+package $BASE_PACKAGE.controller;
+
+import $BASE_PACKAGE.dto.${ENTITY_NAME}CreateRequest;
+import $BASE_PACKAGE.dto.${ENTITY_NAME}UpdateRequest;
+import $BASE_PACKAGE.service.${ENTITY_NAME}Service;
+import $BASE_PACKAGE.vo.${ENTITY_NAME}VO;
+
+public class ${ENTITY_NAME}Controller {
+    private final ${ENTITY_NAME}Service ${LOWER_ENTITY}Service;
+
+    public ${ENTITY_NAME}Controller(${ENTITY_NAME}Service ${LOWER_ENTITY}Service) {
+        this.${LOWER_ENTITY}Service = ${LOWER_ENTITY}Service;
+    }
+
+    public ${ENTITY_NAME}VO create(${ENTITY_NAME}CreateRequest request) {
+        return ${LOWER_ENTITY}Service.create(request);
+    }
+
+    public ${ENTITY_NAME}VO update(${ENTITY_NAME}UpdateRequest request) {
+        return ${LOWER_ENTITY}Service.update(request);
+    }
+
+    public ${ENTITY_NAME}VO detail(Long id) {
+        return ${LOWER_ENTITY}Service.detail(id);
+    }
+}
+EOF
+
+cat > "$TARGET_ROOT/REVIEW.md" <<EOF
+# $ENTITY_NAME CRUD Draft Review
+
+This package is generated by the generic preview-only adapter.
+
+## Required Confirmation Before Applying
+- Database table, columns, indexes, tenant rules and soft-delete rules.
+- API path, method, request, response, error code and pagination contract.
+- Permission rules and audit requirements.
+- Existing project response wrapper, exception strategy, transaction policy and package conventions.
+- Test plan and rollback plan.
+
+## Important
+These files are drafts for review. They are intentionally written under \`$OUTPUT_DIR\`, not under business source directories.
+EOF
+
+printf '\n[WRITE] Draft package created: %s\n' "$TARGET_ROOT"

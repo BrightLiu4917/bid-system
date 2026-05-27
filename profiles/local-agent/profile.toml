@@ -1,0 +1,22 @@
+name = "local-agent"
+description = "安装 OpenSpec、核心规则、Codex skills、本地 Agent 执行闭环文档、模板和脚本。"
+items = [
+  "AGENTS.md",
+  "CODEX_TASK_TEMPLATE.md",
+  "README.md",
+  "CONTEXT.md",
+  "CONTEXT-MAP.md",
+  "openspec",
+  "docs",
+  ".codex",
+  "tools/codegen/java-springboot-crud-adapters/README.md",
+  "tools/codegen/java-springboot-crud-adapters/generic",
+  "scripts",
+  "templates",
+  "profiles",
+  "examples"
+]
+
+exclude_items = [
+  ".codex/skills/codegen-java-springboot-gupo-crud"
+]
