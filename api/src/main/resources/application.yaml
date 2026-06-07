@@ -1,3 +1,62 @@
+server:
+  port: ${BIA_API_PORT:8889}
+
 spring:
   application:
     name: api
+
+  servlet:
+    multipart:
+      max-file-size: 100MB
+      max-request-size: 100MB
+
+  datasource:
+    url: ${BIA_DB_URL:jdbc:mysql://localhost:13306/bia?useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true}
+    username: ${BIA_DB_USERNAME:root}
+    password: ${BIA_DB_PASSWORD:root}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+  data:
+    redis:
+      host: ${BIA_REDIS_HOST:127.0.0.1}
+      port: ${BIA_REDIS_PORT:16379}
+      password: ${BIA_REDIS_PASSWORD:root}
+      database: ${BIA_REDIS_DATABASE:1}
+      timeout: ${BIA_REDIS_TIMEOUT:3000ms}
+
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+
+mybatis:
+  mapper-locations: classpath:/mapper/**/*.xml
+  type-aliases-package: com.study.api.model
+  configuration:
+    map-underscore-to-camel-case: true
+
+bia:
+  admin:
+    login-url: ${BIA_ADMIN_LOGIN_URL:/#/login}
+  jwt:
+    secret: ${BIA_JWT_SECRET:bia-admin-local-secret-change-before-prod}
+    expire-seconds: ${BIA_JWT_EXPIRE_SECONDS:86400}
+  mail:
+    config-secret: ${BIA_MAIL_CONFIG_SECRET:${BIA_JWT_SECRET:bia-admin-local-secret-change-before-prod}}
+  auth:
+    captcha:
+      length: 3
+      expire-seconds: 30
+    sms:
+      length: 4
+      expire-seconds: 300
+      max-send-count: 3
+      limit-window-seconds: 300
+      phone-window-max-count: 3
+      phone-window-seconds: 300
+      phone-daily-max-count: 10
+      ip-daily-max-count: 15
+      test-bypass-enabled: ${BIA_AUTH_SMS_TEST_BYPASS_ENABLED:true}
+      test-bypass-code: ${BIA_AUTH_SMS_TEST_BYPASS_CODE:test-root}
+  upload:
+    root-dir: ${BIA_UPLOAD_ROOT:files}

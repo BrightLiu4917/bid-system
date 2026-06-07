@@ -1,3 +1,15 @@
 .agent/
 api/.git.bak-*/
 vue/.git.bak-*/
+.env
+.env.*
+!.env.example
+release/*.log
+/import/
+/database-dumps/
+/dist/
+*.sql.gz
+*.sql.zip
+/sql/INIT.sql.zip
+/sql/init.sql.zip
+/init.sql.zip
