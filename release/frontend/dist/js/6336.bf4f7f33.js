@@ -1,0 +1,1 @@
+"use strict";(self.rspackChunkvue3_admin_better=self.rspackChunkvue3_admin_better||[]).push([[6336],{66499:function(e,t,s){e.exports=s.p+"static/hero-cultural-1..jpg"}}]);

@@ -1,0 +1,1 @@
+"use strict";(self.rspackChunkvue3_admin_better=self.rspackChunkvue3_admin_better||[]).push([[7547],{4150:function(t,e,n){n.r(e),n.d(e,{getIconList:function(){return r}});var u=n(56343);function r(t){return(0,u.default)({url:"/icon/list",method:"post",data:t})}}}]);

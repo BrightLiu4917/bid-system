@@ -1,0 +1,1 @@
+"use strict";(self.rspackChunkvue3_admin_better=self.rspackChunkvue3_admin_better||[]).push([[4726],{65573:function(t,e,n){t.exports=n.p+"static/portal-banner-tiantan-2400x464-v13..jpg"}}]);

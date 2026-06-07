@@ -1,0 +1,1 @@
+"use strict";(self.rspackChunkvue3_admin_better=self.rspackChunkvue3_admin_better||[]).push([[4660],{58751:function(e,t,s){e.exports=s.p+"static/login-bg..jpg"}}]);

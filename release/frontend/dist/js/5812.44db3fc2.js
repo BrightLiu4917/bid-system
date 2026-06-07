@@ -1,0 +1,1 @@
+"use strict";(self.rspackChunkvue3_admin_better=self.rspackChunkvue3_admin_better||[]).push([[5812],{46831:function(t,e,n){t.exports=n.p+"static/portal-hero-tiantan-banner-2400x464..jpg"}}]);

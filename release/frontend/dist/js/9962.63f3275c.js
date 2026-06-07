@@ -1,0 +1,1 @@
+"use strict";(self.rspackChunkvue3_admin_better=self.rspackChunkvue3_admin_better||[]).push([[9962],{28849:function(e,t,r){r.r(t),r.d(t,{getPortalHome:function(){return u}});var n=r(56343);function u(){return(0,n.default)({baseURL:"",url:"/api/app/v1/portal-home/detail",method:"get",retry:0,silent:!0})}}}]);

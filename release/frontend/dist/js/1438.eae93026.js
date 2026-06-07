@@ -1,0 +1,1 @@
+"use strict";(self.rspackChunkvue3_admin_better=self.rspackChunkvue3_admin_better||[]).push([[1438],{47949:function(t,e,s){t.exports=s.p+"static/portal-banner-2400x464-test..jpg"}}]);
